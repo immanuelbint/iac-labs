@@ -5,6 +5,10 @@
 - **Tool**: Terraform
 - **Operating System**: Rocky Linux or another Red Hat-based OS (e.g., CentOS, RHEL)
 
+## Sequence Diagram
+
+![](../resources/single-node-seq-diagram.png)
+
 ## Configure Terraform
 
 ### Steps

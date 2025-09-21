@@ -16,7 +16,6 @@ users:
     groups: users, admin
     home: /home/apps
     shell: /bin/bash
-    lock_passwd: false
-    passwd: 123
+    lock_passwd: true
     ssh-authorized-keys: # list SSH Keys to authenticate
       - ssh-rsa <your-id-rsa>
