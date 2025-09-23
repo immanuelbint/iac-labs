@@ -7,7 +7,7 @@
 
 ## Sequence Diagram
 
-![](../resources/single-node-seq-diagram.png)
+![](../resources/single-node-diagram.png)
 
 ## Configure Terraform
 
@@ -81,7 +81,7 @@ variable "ip_address" {
 }
 ```
 
-- Use `virsh pool-list` to find available storage pools if unsure about `pool_name`.
+- Use `virsh pool-list` to find available storage pools if unsure about `libvirt_pool_name`.
 - Adjust IP addresses and network settings to match your setup.
 
 4. Create `main.tf` for the master VM:
