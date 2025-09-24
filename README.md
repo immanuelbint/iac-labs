@@ -28,7 +28,7 @@ The main goal of this repository is to document my hands-on learning process, ke
 ## Progress Tracker
 
 - [X] Terraform: Provision VM single-node on premises
-- [X] Terraform: Multi-node cluster on premises
+- [X] Terraform: Provision Multi-node cluster on premises
 - [ ] Terraform: Provision EC2 instance on AWS
 
 ## Notes and Future Improvement

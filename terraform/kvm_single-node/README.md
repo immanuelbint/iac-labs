@@ -5,7 +5,7 @@
 - **Tool**: Terraform
 - **Operating System**: Rocky Linux or another Red Hat-based OS (e.g., CentOS, RHEL)
 
-## Sequence Diagram
+## Diagram
 
 ![](../resources/single-node-diagram.png)
 
