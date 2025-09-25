@@ -13,10 +13,19 @@ data "template_file" "network_config" {
   }
 }
 
+# Base OS volume
 resource "libvirt_volume" "instance_vol" {
     name    = "${var.vm_hostname}-vol"
     pool    = var.libvirt_pool_name
     source  = var.base_image_path
+    format  = "qcow2"
+}
+
+# Data Volume
+resource "libvirt_volume" "data_volume" {
+    name    = "${var.vm_hostname}-data-vol"
+    pool    = var.libvirt_pool_name
+    size    = var.data_volume * 1024 * 1024 * 1024
     format  = "qcow2"
 }
 
@@ -58,5 +67,9 @@ resource "libvirt_domain" "node" {
 
     disk {
         volume_id   = libvirt_volume.instance_vol.id
+    }
+
+    disk {
+        volume_id   = libvirt_volume.data_volume.id
     }
 }

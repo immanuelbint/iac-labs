@@ -36,3 +36,9 @@ variable "ip_address" {
     description = "IP Addresses to be used by virtual machine (with CIDR)"
     default     = "172.23.0.89/26"
 }
+
+variable "data_volume" {
+    description = "size of additional data volume"
+    type        = number
+    default     = 8 # will create 8 GB data vol
+}
