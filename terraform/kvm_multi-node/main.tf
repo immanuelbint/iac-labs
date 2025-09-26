@@ -87,12 +87,25 @@ data "template_file" "worker_network_config" {
   }
 }
 
+# Worker Main Disk
 resource "libvirt_volume" "worker_instance_vol" {
     count   = var.worker_count
     name    = "${var.worker_hostname}-vol.${count.index}"
     pool    = var.libvirt_pool_name
     source  = var.base_image_path
     format  = "qcow2"
+}
+
+# Worker Data Volume
+resource "libvirt_volume" "worker_data_volume" {
+    for_each    = {
+        for volume in var.data_volume : volume.name => volume
+    }
+
+    name    = "${var.vm_hostname}-${each.value.name}"
+    pool    = each.value.pool
+    size    = each.value.size * 1024 * 1024 * 1024
+    format  = each.value.format
 }
 
 resource "libvirt_cloudinit_disk" "worker_cloudinit" {
@@ -135,5 +148,12 @@ resource "libvirt_domain" "worker_node" {
 
     disk {
         volume_id   = libvirt_volume.worker_instance_vol[count.index].id
+    }
+
+    dynamic "disk" {
+        for_each    = libvirt_volume.worker_data_volume
+        content {
+            volume_id   = disk.value.id
+        }
     }
 }
