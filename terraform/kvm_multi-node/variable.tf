@@ -73,3 +73,21 @@ variable "worker_count" {
     description = "Number of worker VMs to create"
     default     = 2
 }
+
+variable "worker_data_volume" {
+    description = "Additional data volume config to be used by virtual machine"
+    type        = list(object({
+        name    = string
+        pool    = string
+        size    = number
+        format  = string
+    }))
+    default     = [
+        {
+            name    = "data-vol"
+            pool    = "pool-1"
+            size    = 10
+            format  = "qcow2"
+        }
+    ]
+}
