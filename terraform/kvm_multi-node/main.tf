@@ -102,7 +102,7 @@ resource "libvirt_volume" "worker_data_volume" {
         for volume in var.data_volume : volume.name => volume
     }
 
-    name    = "${var.vm_hostname}-${each.value.name}"
+    name    = "${var.worker_hostname}-${each.value.name}"
     pool    = each.value.pool
     size    = each.value.size * 1024 * 1024 * 1024
     format  = each.value.format
