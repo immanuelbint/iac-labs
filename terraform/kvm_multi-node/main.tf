@@ -99,7 +99,7 @@ resource "libvirt_volume" "worker_instance_vol" {
 # Worker Data Volume
 resource "libvirt_volume" "worker_data_volume" {
     for_each    = {
-        for volume in var.data_volume : volume.name => volume
+        for volume in var.worker_data_volume : volume.name => volume
     }
 
     name    = "${var.worker_hostname}-${each.value.name}"
