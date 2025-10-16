@@ -98,14 +98,11 @@ resource "libvirt_volume" "worker_instance_vol" {
 
 # Worker Data Volume
 resource "libvirt_volume" "worker_data_volume" {
-    for_each    = {
-        for volume in var.worker_data_volume : volume.name => volume
-    }
-
-    name    = "${var.worker_hostname}-${each.value.name}"
-    pool    = each.value.pool
+    count   = var.worker_count
+    name    = "${var.worker_hostname}-${count.index}-data-vol"
+    pool    = var.libvirt_pool_name
     size    = each.value.size * 1024 * 1024 * 1024
-    format  = each.value.format
+    format  = "qcow2"
 }
 
 resource "libvirt_cloudinit_disk" "worker_cloudinit" {
@@ -150,10 +147,7 @@ resource "libvirt_domain" "worker_node" {
         volume_id   = libvirt_volume.worker_instance_vol[count.index].id
     }
 
-    dynamic "disk" {
-        for_each    = libvirt_volume.worker_data_volume
-        content {
-            volume_id   = disk.value.id
-        }
+    disk {
+        volume_id   = libvirt_volume.worker_data_volume[count.index].id
     }
 }
