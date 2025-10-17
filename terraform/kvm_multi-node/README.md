@@ -49,7 +49,7 @@ variable "libvirt_pool_name" {
 variable "base_image_path" {
     description = "images path to be used by virtual machine"
     type        = string
-    default     = "/pool/1/images/Rocky-8-GenericCloud-Base.latest.x86_64.qcow2"
+    default     = "/data/images/Rocky-8-GenericCloud-Base.latest.x86_64.qcow2"
 }
 
 variable "vm_domain" {
@@ -73,18 +73,36 @@ variable "master_cpu" {
 variable "master_memory" {
     description = "memory size for the master virtual machine in MB"
     type        = number
-    default     = 2048
+    default     = 4096
 }
 
 variable "master_ip_address" {
     type        = list(string)
     description = "IP Addresses to be used by master virtual machine (with CIDR)"
-    default     = ["172.23.0.87/26"]
+    default     = ["192.168.122.2/24"]
 }
 
 variable "master_count" {
     description = "Number of master VMs to create"
     default     = 1
+}
+
+variable "master_data_volume" {
+    description = "Additional data volume config to be used by virtual machine"
+    type        = list(object({
+        name    = string
+        pool    = string
+        size    = number
+        format  = string
+    }))
+    default     = [
+        {
+            name    = "master-data-vol"
+            pool    = "pool-1"
+            size    = 50
+            format  = "qcow2"
+        }
+    ]
 }
 
 # --- Worker node variable --- #
@@ -109,12 +127,30 @@ variable "worker_memory" {
 variable "worker_ip_address" {
     type        = list(string)
     description = "IP Addresses to be used by worker virtual machine (with CIDR)"
-    default     = ["172.23.0.88/26", "172.23.0.89/26"]
+    default     = ["192.168.122.3/24", "192.168.122.4/24"]
 }
 
 variable "worker_count" {
     description = "Number of worker VMs to create"
     default     = 2
+}
+
+variable "worker_data_volume" {
+    description = "Additional data volume config to be used by virtual machine"
+    type        = list(object({
+        name    = string
+        pool    = string
+        size    = number
+        format  = string
+    }))
+    default     = [
+        {
+            name    = "data-vol"
+            pool    = "pool-1"
+            size    = 50
+            format  = "qcow2"
+        }
+    ]
 }
 ```
 
@@ -146,11 +182,21 @@ data "template_file" "master_network_config" {
 
 resource "libvirt_volume" "master_instance_vol" {
     count   = var.master_count
-    name    = "${var.master_hostname}-vol.${count.index}"
+    name    = "${var.master_hostname}-${count.index}-vol"
     pool    = var.libvirt_pool_name
     source  = var.base_image_path
     format  = "qcow2"
 }
+
+# Master Data Volume
+resource "libvirt_volume" "master_data_volume" {
+    count   = var.master_count
+    name    = "${var.master_hostname}-data-vol-${count.index}"
+    pool    = var.master_data_volume[0].pool
+    size    = var.master_data_volume[0].size * 1024 * 1024 * 1024
+    format  = var.master_data_volume[0].format
+}
+
 
 resource "libvirt_cloudinit_disk" "master_cloudinit" {
     count           = var.master_count
@@ -168,12 +214,17 @@ resource "libvirt_domain" "master_node" {
     cloudinit   = libvirt_cloudinit_disk.master_cloudinit[count.index].id
     autostart   = true
 
+    depends_on = [
+        libvirt_volume.master_instance_vol,
+        libvirt_volume.master_data_volume
+    ]
+
     cpu {
         mode = "host-passthrough"
     }
 
     network_interface {
-        macvtap         = "enp4s7"
+        bridge          = "virbr0"
         wait_for_lease  = "false"
         hostname        = "${var.master_hostname}-${count.index}"
     }
@@ -192,6 +243,10 @@ resource "libvirt_domain" "master_node" {
 
     disk {
         volume_id   = libvirt_volume.master_instance_vol[count.index].id
+    }
+
+    disk {
+        volume_id   = libvirt_volume.master_data_volume[count.index].id
     }
 }
 
@@ -214,12 +269,22 @@ data "template_file" "worker_network_config" {
   }
 }
 
+# Worker Main Disk
 resource "libvirt_volume" "worker_instance_vol" {
     count   = var.worker_count
     name    = "${var.worker_hostname}-vol.${count.index}"
     pool    = var.libvirt_pool_name
     source  = var.base_image_path
     format  = "qcow2"
+}
+
+# Worker Data Volume
+resource "libvirt_volume" "worker_data_volume" {
+    count   = var.worker_count
+    name    = "${var.worker_hostname}-data-vol-${count.index}"
+    pool    = var.worker_data_volume[0].pool
+    size    = var.worker_data_volume[0].size * 1024 * 1024 * 1024
+    format  = var.worker_data_volume[0].format
 }
 
 resource "libvirt_cloudinit_disk" "worker_cloudinit" {
@@ -238,12 +303,17 @@ resource "libvirt_domain" "worker_node" {
     cloudinit   = libvirt_cloudinit_disk.worker_cloudinit[count.index].id
     autostart   = true
 
+    depends_on = [
+        libvirt_volume.master_instance_vol,
+        libvirt_volume.master_data_volume
+    ]
+
     cpu {
         mode = "host-passthrough"
     }
 
     network_interface {
-        macvtap         = "enp4s7"
+        bridge          = "virbr0"
         wait_for_lease  = "false"
         hostname        = "${var.worker_hostname}-${count.index}"
     }
@@ -262,6 +332,10 @@ resource "libvirt_domain" "worker_node" {
 
     disk {
         volume_id   = libvirt_volume.worker_instance_vol[count.index].id
+    }
+
+    disk {
+        volume_id   = libvirt_volume.worker_data_volume[count.index].id
     }
 }
 ```
@@ -283,10 +357,10 @@ ethernets:
     dhcp6: false
     addresses:
       - ${ip_address}
-    gateway4: 172.23.0.1
+    gateway4: 192.168.122.1
     nameservers:
       addresses:
-        - 8.8.8.8  
+        - 8.8.8.8
 ```
 
 - Adjust `gateway4` to match your network.
@@ -372,7 +446,7 @@ From the KVM host, test SSH connectivity to a VM:
 ```bash
 ssh root@<your-ip-address>
 ```
-- Replace `<your-ip-address>` with an IP from `ip_address_master` or `ip_address` (e.g., `172.23.0.89`).
+- Replace `<your-ip-address>` with an IP from `ip_address_master` or `ip_address` (e.g., `192.168.122.2`).
 - If SSH fails, ensure the VM is running (`virsh list --all`) and the network is configured correctly.
 
 ## Notes and Future Improvement

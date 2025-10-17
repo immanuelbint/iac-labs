@@ -6,7 +6,7 @@ variable "libvirt_pool_name" {
 variable "base_image_path" {
     description = "images path to be used by virtual machine"
     type        = string
-    default     = "/pool/1/images/Rocky-8-GenericCloud-Base.latest.x86_64.qcow2"
+    default     = "/data/images/Rocky-8-GenericCloud-Base.latest.x86_64.qcow2"
 }
 
 variable "vm_domain" {
@@ -30,18 +30,36 @@ variable "master_cpu" {
 variable "master_memory" {
     description = "memory size for the master virtual machine in MB"
     type        = number
-    default     = 2048
+    default     = 4096
 }
 
 variable "master_ip_address" {
     type        = list(string)
     description = "IP Addresses to be used by master virtual machine (with CIDR)"
-    default     = ["172.23.0.87/26"]
+    default     = ["192.168.122.2/24"]
 }
 
 variable "master_count" {
     description = "Number of master VMs to create"
     default     = 1
+}
+
+variable "master_data_volume" {
+    description = "Additional data volume config to be used by virtual machine"
+    type        = list(object({
+        name    = string
+        pool    = string
+        size    = number
+        format  = string
+    }))
+    default     = [
+        {
+            name    = "master-data-vol"
+            pool    = "pool-1"
+            size    = 50
+            format  = "qcow2"
+        }
+    ]
 }
 
 # --- Worker node variable --- #
@@ -66,7 +84,7 @@ variable "worker_memory" {
 variable "worker_ip_address" {
     type        = list(string)
     description = "IP Addresses to be used by worker virtual machine (with CIDR)"
-    default     = ["172.23.0.88/26", "172.23.0.89/26"]
+    default     = ["192.168.122.3/24", "192.168.122.4/24"]
 }
 
 variable "worker_count" {
@@ -86,7 +104,7 @@ variable "worker_data_volume" {
         {
             name    = "data-vol"
             pool    = "pool-1"
-            size    = 10
+            size    = 50
             format  = "qcow2"
         }
     ]
